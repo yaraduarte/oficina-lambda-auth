@@ -1,0 +1,10 @@
+{
+  "name": "oficina-lambda-auth",
+  "version": "1.0.0",
+  "description": "Lambda de autenticação por CPF — Oficina Marimbondo",
+  "main": "handler.js",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3"
+  }
+}

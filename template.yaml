@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Oficina Marimbondo - Lambda de autenticação por CPF
+
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: nodejs22.x
+    Environment:
+      Variables:
+        DB_HOST: !Ref DBHost
+        DB_PORT: !Ref DBPort
+        DB_NAME: !Ref DBName
+        DB_USER: !Ref DBUser
+        DB_PASS: !Ref DBPass
+        JWT_SECRET: !Ref JwtSecret
+
+Parameters:
+  DBHost:
+    Type: String
+    Description: Host do RDS PostgreSQL
+  DBPort:
+    Type: String
+    Default: "5432"
+  DBName:
+    Type: String
+    Default: "oficina_db"
+  DBUser:
+    Type: String
+    Default: "oficina_admin"
+  DBPass:
+    Type: String
+    NoEcho: true
+  JwtSecret:
+    Type: String
+    NoEcho: true
+
+Resources:
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: oficina-auth
+      CodeUri: src/
+      Handler: handler.handler
+      Description: Valida CPF, consulta cliente e devolve JWT
+      Events:
+        AuthApi:
+          Type: Api
+          Properties:
+            Path: /auth
+            Method: post
+      Tags:
+        Project: oficina-marimb0ndo
+
+Outputs:
+  AuthApiUrl:
+    Description: URL da API de autenticação
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth"
+  AuthFunctionArn:
+    Description: ARN da função Lambda
+    Value: !GetAtt AuthFunction.Arn
