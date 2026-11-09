@@ -1,13 +1,13 @@
 # oficina-lambda-auth
 
-Função **AWS Lambda** de autenticação da **Oficina Marimbondo**. Recebe um CPF, valida o formato, consulta o cliente no banco de dados e devolve um JWT válido para consumo das APIs protegidas.
+Função **AWS Lambda** de autenticação da **Oficina Marimbondo**. Recebe um CPF, valida os dígitos, consulta o cliente no **os-service** e devolve um JWT, **somente para clientes com status `ATIVO`**.
 
 ## Tecnologias
 
 - Node.js 22
-- AWS Lambda + API Gateway (SAM)
-- PostgreSQL (AWS RDS via `pg`)
+- AWS Lambda (SAM)
 - JWT (`jsonwebtoken`)
+- Jest (testes unitários, cobertura mínima de 80% exigida no CI)
 - GitHub Actions (CI/CD)
 
 ## Arquitetura
@@ -20,11 +20,14 @@ API Gateway
    │
    ▼
 Lambda (oficina-auth)
-   ├── Valida formato do CPF
-   ├── Consulta RDS PostgreSQL
-   │     SELECT * FROM clients WHERE cpf_cnpj = $1
-   └── Retorna JWT { token, expiresIn, client }
+   ├── 1. Valida o CPF pelos dígitos verificadores
+   ├── 2. GET {OS_SERVICE_URL}/internal/clients/by-cpf/{cpf}
+   │        header x-internal-api-key   (não acessa o banco de outro serviço)
+   ├── 3. status != ATIVO  →  403 (token negado)
+   └── 4. Assina o JWT (iss, aud, sub, role=CLIENT, status)
 ```
+
+**Por que não consultar o banco direto?** Na arquitetura de microsserviços da Fase 4, a tabela `clients` pertence ao os-service, e nenhum serviço pode acessar o banco de outro. A regra de autenticação usa o campo explícito `status` (`ATIVO` / `INATIVO` / `BLOQUEADO`), e não mais apenas `deleted_at`.
 
 ## Endpoint
 
@@ -44,13 +47,33 @@ Content-Type: application/json
 }
 ```
 
+Claims do token: `sub`, `name`, `email`, `cpf`, `type=client`, `role=CLIENT`, `status`, `iss=oficina-marimb0ndo-auth`, `aud=oficina-marimb0ndo-api`.
+
 ### Erros
 | Código | Motivo |
 |--------|--------|
 | 400 | CPF ausente ou JSON inválido |
-| 422 | CPF com formato inválido |
+| 422 | CPF com dígitos inválidos |
+| 403 | Cliente com status `INATIVO` ou `BLOQUEADO` (token negado) |
 | 404 | Cliente não encontrado |
-| 500 | Erro interno |
+| 503 | os-service indisponível |
+| 500 | Erro interno / configuração ausente |
+
+## Configuração
+
+| Variável | Origem no deploy | Descrição |
+|----------|------------------|-----------|
+| `OS_SERVICE_URL` | variável `OS_SERVICE_URL` do environment (`homolog` / `production`) | URL base do os-service |
+| `INTERNAL_API_KEY` | secret `INTERNAL_API_KEY` | Chave do header `x-internal-api-key` |
+| `JWT_SECRET` | secret `JWT_SECRET` | Chave de assinatura do JWT |
+
+## Testes
+
+```bash
+npm install --prefix src
+npm ci
+npm test        # Jest com cobertura (mínimo 80%)
+```
 
 ## Como executar localmente
 
@@ -89,6 +112,5 @@ O template recebe o parâmetro `Environment` (`prod`/`hml`): em homologação a 
 |--------|-----------|
 | `AWS_ACCESS_KEY_ID` | Access key da AWS |
 | `AWS_SECRET_ACCESS_KEY` | Secret key da AWS |
-| `DB_HOST` | Endpoint do RDS |
-| `DB_PASSWORD` | Senha do banco |
+| `INTERNAL_API_KEY` | Chave para o endpoint interno do os-service |
 | `JWT_SECRET` | Chave secreta para assinar o JWT |
