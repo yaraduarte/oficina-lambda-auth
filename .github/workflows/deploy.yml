@@ -30,10 +30,19 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm install --prefix src
+        run: |
+          npm install --prefix src
+          npm ci
 
-      - name: Syntax check
-        run: node --check src/handler.js
+      - name: Testes unitários (cobertura mínima 80%)
+        run: npm run test:ci
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
 
       - name: Setup SAM CLI
         uses: aws-actions/setup-sam@v2
@@ -55,7 +64,6 @@ jobs:
     env:
       APP_ENV: ${{ github.ref_name == 'main' && 'prod' || 'hml' }}
       STACK_NAME: ${{ github.ref_name == 'main' && 'oficina-lambda-auth' || 'oficina-lambda-auth-hml' }}
-      DB_NAME: ${{ github.ref_name == 'main' && 'oficina_db' || 'oficina_db_hml' }}
 
     steps:
       - name: Checkout
@@ -94,7 +102,6 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
               Environment=$APP_ENV \
-              DBName=$DB_NAME \
-              DBHost=${{ secrets.DB_HOST }} \
-              DBPass=${{ secrets.DB_PASSWORD }} \
+              OsServiceUrl=${{ vars.OS_SERVICE_URL }} \
+              InternalApiKey=${{ secrets.INTERNAL_API_KEY }} \
               JwtSecret=${{ secrets.JWT_SECRET }}
