@@ -59,6 +59,21 @@ Claims do token: `sub`, `name`, `email`, `cpf`, `type=client`, `role=CLIENT`, `s
 | 503 | os-service indisponível |
 | 500 | Erro interno / configuração ausente |
 
+## Lambda authorizer do API Gateway
+
+O mesmo repositório publica a função `oficina-authorizer` (`src/authorizer.js`), usada como **Lambda authorizer (REQUEST, respostas simples)** do API Gateway HTTP API declarado no `oficina-infra-k8s`.
+
+| Verificação | Regra |
+|---|---|
+| Header | `Authorization: Bearer <jwt>` |
+| Assinatura | HS256 com `JWT_SECRET` |
+| `iss` | `oficina-marimb0ndo-auth` (clientes) ou `oficina-marimb0ndo-os` (funcionários) |
+| `aud` | `oficina-marimb0ndo-api` |
+| `exp` | não expirado |
+| Cliente | `status` precisa ser `ATIVO` |
+
+Quando autoriza, devolve `{ isAuthorized: true, context: { sub, role, type, status } }`, e o Gateway repassa esse contexto ao serviço de destino. Em qualquer falha devolve `{ isAuthorized: false }` e o Gateway responde **403** sem chegar ao k3s.
+
 ## Configuração
 
 | Variável | Origem no deploy | Descrição |

@@ -41,20 +41,28 @@ Resources:
       CodeUri: src/
       Handler: handler.handler
       Description: Valida CPF, consulta o cliente no os-service, nega inativos e devolve JWT
-      Events:
-        AuthApi:
-          Type: Api
-          Properties:
-            Path: /auth
-            Method: post
+      # Exposta pelo API Gateway HTTP API declarado em Terraform (oficina-infra-k8s): POST /auth
+      Tags:
+        Project: oficina-marimb0ndo
+        Environment: !Ref Environment
+
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !If [IsProd, oficina-authorizer, !Sub "oficina-authorizer-${Environment}"]
+      CodeUri: src/
+      Handler: authorizer.handler
+      Timeout: 3
+      MemorySize: 128
+      Description: Lambda authorizer do API Gateway - valida JWT (assinatura, iss, aud, exp, status)
       Tags:
         Project: oficina-marimb0ndo
         Environment: !Ref Environment
 
 Outputs:
-  AuthApiUrl:
-    Description: URL da API de autenticação
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth"
   AuthFunctionArn:
-    Description: ARN da função Lambda
+    Description: ARN da função de autenticação (integração POST /auth no API Gateway)
     Value: !GetAtt AuthFunction.Arn
+  AuthorizerFunctionArn:
+    Description: ARN da Lambda authorizer do API Gateway
+    Value: !GetAtt AuthorizerFunction.Arn
