@@ -16,6 +16,11 @@ Globals:
         JWT_SECRET: !Ref JwtSecret
 
 Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [prod, hml]
+    Description: Ambiente do deploy (prod = branch main, hml = branch homolog)
   DBHost:
     Type: String
     Description: Host do RDS PostgreSQL
@@ -35,11 +40,14 @@ Parameters:
     Type: String
     NoEcho: true
 
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
 Resources:
   AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: oficina-auth
+      FunctionName: !If [IsProd, oficina-auth, !Sub "oficina-auth-${Environment}"]
       CodeUri: src/
       Handler: handler.handler
       Description: Valida CPF, consulta cliente e devolve JWT
@@ -51,6 +59,7 @@ Resources:
             Method: post
       Tags:
         Project: oficina-marimb0ndo
+        Environment: !Ref Environment
 
 Outputs:
   AuthApiUrl:

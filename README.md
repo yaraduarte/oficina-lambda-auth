@@ -67,7 +67,21 @@ sam local invoke AuthFunction --event events/test.json
 
 ## CI/CD
 
-Push na `main` dispara build + deploy automático via GitHub Actions.
+Pipeline em `.github/workflows/deploy.yml`: todo PR roda `node --check`, `sam validate --lint` e `sam build`.
+
+### Fluxo de branches e ambientes
+
+```
+feature/*  ──PR──►  homolog  ──PR──►  main
+                      │                 │
+                      ▼                 ▼
+   stack oficina-lambda-auth-hml  stack oficina-lambda-auth
+```
+
+- `main` e `homolog` são **protegidas**: push direto bloqueado (inclusive para admin), merge só via Pull Request com os checks obrigatórios verdes e conversas resolvidas.
+- Todo PR roda o pipeline de validação; o deploy acontece apenas após o merge.
+
+O template recebe o parâmetro `Environment` (`prod`/`hml`): em homologação a função se chama `oficina-auth-hml` e usa o database `oficina_db_hml`.
 
 ### Secrets necessários
 
