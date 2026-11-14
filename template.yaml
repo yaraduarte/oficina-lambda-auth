@@ -39,6 +39,7 @@ Resources:
     Properties:
       FunctionName: !If [IsProd, oficina-auth, !Sub "oficina-auth-${Environment}"]
       CodeUri: src/
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole" # Learner Lab nao permite criar roles IAM
       Handler: handler.handler
       Description: Valida CPF, consulta o cliente no os-service, nega inativos e devolve JWT
       # Exposta pelo API Gateway HTTP API declarado em Terraform (oficina-infra-k8s): POST /auth
@@ -51,6 +52,7 @@ Resources:
     Properties:
       FunctionName: !If [IsProd, oficina-authorizer, !Sub "oficina-authorizer-${Environment}"]
       CodeUri: src/
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole" # Learner Lab nao permite criar roles IAM
       Handler: authorizer.handler
       Timeout: 3
       MemorySize: 128
