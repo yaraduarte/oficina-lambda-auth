@@ -3,11 +3,9 @@
 const jwt = require('jsonwebtoken');
 const { onlyDigits, isValidCpf } = require('./lib/cpf');
 const { createOsServiceClient, OsServiceError } = require('./lib/osServiceClient');
+const { ISSUER, AUDIENCE, ACTIVE_STATUS } = require('./lib/jwtConfig');
 
 const TOKEN_TTL = '24h';
-const ISSUER = 'oficina-marimb0ndo-auth';
-const AUDIENCE = 'oficina-marimb0ndo-api';
-const ACTIVE_STATUS = 'ATIVO';
 
 function response(statusCode, body) {
   return {
